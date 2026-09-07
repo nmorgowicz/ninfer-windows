@@ -13,6 +13,7 @@ import argparse
 from dataclasses import dataclass
 import hashlib
 import json
+import os
 from pathlib import Path
 import time
 from typing import Mapping, Sequence
@@ -89,7 +90,27 @@ def build_object_plan(resources: Mapping[str, bytes]) -> ObjectPlan:
     return family_conversion.build_object_plan(inventory.OBJECT_SPECS, resources)
 
 
+def _resource_sha256_overrides() -> dict[str, str]:
+    """Optional per-resource SHA256 overrides for finetuned sources.
+
+    Set NINFER_QWEN3_8_27B_RESOURCE_SHA256 to a JSON file mapping
+    "frontend/<name>" to a SHA256 hex digest; unlisted resources keep the
+    official hash. A finetune with a modified tokenizer declares its own.
+    """
+    path = os.environ.get("NINFER_QWEN3_8_27B_RESOURCE_SHA256")
+    if not path:
+        return {}
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError(
+            "NINFER_QWEN3_8_27B_RESOURCE_SHA256 must map resource name to sha256"
+        )
+    return {str(name): str(digest) for name, digest in data.items()}
+
+
 def load_resources(model_dir: str | Path) -> tuple[ResourcePayload, ...]:
+    expected_hashes = dict(OFFICIAL_RESOURCE_SHA256)
+    expected_hashes.update(_resource_sha256_overrides())
     expected_names = tuple(OFFICIAL_RESOURCE_SHA256)
     spec_names = tuple(spec.name for spec in inventory.RESOURCE_SPECS)
     if spec_names != expected_names:
@@ -106,7 +127,7 @@ def load_resources(model_dir: str | Path) -> tuple[ResourcePayload, ...]:
         )
     for resource in resources:
         actual = hashlib.sha256(resource.data).hexdigest()
-        expected = OFFICIAL_RESOURCE_SHA256[resource.name]
+        expected = expected_hashes[resource.name]
         if actual != expected:
             filename = resource.name.removeprefix("frontend/")
             raise ValueError(
