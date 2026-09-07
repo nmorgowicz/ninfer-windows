@@ -15,18 +15,26 @@ runtime:
 |---|---|---|---:|---|
 | [Qwen3.6-27B](https://huggingface.co/neroued/Qwen3.6-27B-NInfer) | `groupwise-int` | `qwen3_6_27b.ninfer` | 17,495,365,888 bytes (16.29 GiB) | `7b51600ffd10632b9660f56085efdd9b751d79733ad32036a652234b64bebe7b` |
 | [Qwen3.6-27B NVFP4](https://huggingface.co/neroued/Qwen3.6-27B-nvfp4-NInfer) | `nvfp4` | `qwen3_6_27b_nvfp4.ninfer` | 18,324,064,000 bytes (17.07 GiB) | `bce5f00d066c0f20f1317bf1fdcb458264cf95837c3b1f3fbec163694627893a` |
-| [Qwen3.8-27B](https://huggingface.co/neroued/Qwen3.8-27B-NInfer) | `groupwise-int` | `qwen3_8_27b.ninfer` | 18,210,531,328 bytes (16.96 GiB) | `eec39564993d6e9c7d5e383382a760f093465c9d163ec9a1bd6b80199514bf3e` |
-| [Qwen3.8-27B NVFP4](https://huggingface.co/neroued/Qwen3.8-27B-nvfp4-NInfer) | `nvfp4` | `qwen3_8_27b_nvfp4.ninfer` | 21,492,695,040 bytes (20.02 GiB) | `bb3360522a06e136e0367f5703414d26272b7285c8a6ab6194135c17dbd81b32` |
+| [Qwen3.8-27B](https://huggingface.co/neroued/Qwen3.8-27B-NInfer) | `groupwise-int` | `qwen3_8_27b.ninfer` | 20,437,336,576 bytes (19.03 GiB) | `0634abb07024221de141456cf04a42ab74b18bc38e1b781c6eb2e062a467eec3` |
+| [Qwen3.8-27B NVFP4](https://huggingface.co/neroued/Qwen3.8-27B-nvfp4-NInfer) | `nvfp4` | `qwen3_8_27b_nvfp4.ninfer` | 23,719,496,192 bytes (22.09 GiB) | `552c374c685dce302603b95fbe940fb04243c0cd44c083efc644ad3d980d462c` |
+| [Qwen3.8-27B NVFP4F](https://huggingface.co/cometkim/Qwen3.8-27B-nvfp4full-NInfer) | `nvfp4full` | `qwen3_8_27b_nvfp4full.ninfer` | 18,324,059,648 bytes (17.07 GiB) | `2f59cc27d67cb7acba0ba8a0e0881ac89c1db2b267a60119a696fefa12faf4e7` |
 | [Qwen3.6-35B-A3B](https://huggingface.co/neroued/Qwen3.6-35B-A3B-NInfer) | `groupwise-int` | `qwen3_6_35b_a3b.ninfer` | 22,783,246,080 bytes (21.22 GiB) | `1fb9ea0b5b8561e49d9604115ec89e5d9f2b6f6434e32c37c57fffd480a325d2` |
 
-Qwen3.6-27B and Qwen3.8-27B each expose two registered weight profiles. The version-2 artifact
-identity selects the profile without a separate runtime flag; Qwen3.8 uses target key
-`qwen3_8_27b` while sharing the 27B execution package. The Qwen3.6 `nvfp4` profile uses W4A4 Tensor
-Core MMA for prefill and A16 NVFP4 kernels for decode. The Qwen3.8 `nvfp4` profile preserves its
-source's mixed allocation: NVFP4 MLP weights in Text layers 0–55 and row-scaled FP8 for the token
-embedding, attention input/output projections, GDN Q/K/V/Z and output projections, output head, and
-remaining MLP weights. All four 27B artifacts retain the same Text, Vision, MTP, prefix-reuse, CLI,
-and serving routes.
+The current Qwen3.8 `groupwise-int` and `nvfp4` artifacts include DFlash2 companion weights;
+select `--spec dflash2 --draft-tokens 7 --lm-head-draft` in a current source build (portable
+v0.6.1 predates this backend). The `nvfp4full` (Qwen3.8-27B NVFP4F) artifact does not include
+DFlash2 companion weights, so `--spec dflash2` is currently unsupported on it. Older Qwen3.8
+artifacts remain usable for Text, Vision and MTP in the current build, but cannot enable
+DFlash2. See [DFlash2 on Windows](docs/windows.md#dflash2) for launch and validation commands.
+
+Qwen3.6-27B exposes two registered weight profiles (`groupwise-int` and `nvfp4`); Qwen3.8-27B
+exposes three, adding `nvfp4full`. The version-2 artifact identity selects the profile without a
+separate runtime flag; Qwen3.8 uses target key `qwen3_8_27b` while sharing the 27B execution
+package. The Qwen3.6 `nvfp4` profile uses W4A4 Tensor Core MMA for prefill and A16 NVFP4 kernels
+for decode. The Qwen3.8 `nvfp4` profile preserves its source's mixed allocation: NVFP4 MLP weights
+in Text layers 0–55 and row-scaled FP8 for the token embedding, attention input/output projections,
+GDN Q/K/V/Z and output projections, output head, and remaining MLP weights. All five 27B artifacts
+retain the same Text, Vision, MTP, prefix-reuse, CLI, and serving routes.
 
 ## Upstream
 
@@ -161,7 +169,7 @@ a `models\` folder, a `README.txt`, and `SHA256SUMS`:
    `SHA256SUMS`, e.g. `Get-FileHash ninfer-serve.exe -Algorithm SHA256`.
 2. Extract it anywhere — the launcher scripts use relative paths and work from any location.
 3. Download a model into `models\`. Easiest on Windows: run the bundled `download_model.bat`,
-   which lists the five published artifacts and downloads the one you pick straight from Hugging
+   which lists the six published artifacts and downloads the one you pick straight from Hugging
    Face (it follows the redirect, resumes interrupted transfers, and verifies the SHA-256). Or
    download one manually via the Hugging Face CLI, as in [Download a model](#download-a-model).
 4. Run the matching launcher, e.g. `.\qwen3_8_27b.bat`. This starts `ninfer-serve` on
@@ -286,6 +294,11 @@ hf download neroued/Qwen3.8-27B-nvfp4-NInfer \
   qwen3_8_27b_nvfp4.ninfer \
   --local-dir models
 
+# Or the Qwen3.8-27B NVFP4 full-weight variant:
+hf download cometkim/Qwen3.8-27B-nvfp4full-NInfer \
+  qwen3_8_27b_nvfp4full.ninfer \
+  --local-dir models
+
 # Or:
 hf download neroued/Qwen3.6-35B-A3B-NInfer \
   qwen3_6_35b_a3b.ninfer \
@@ -297,7 +310,7 @@ Transformers checkpoint, Safetensors distribution, or GGUF file.
 
 ## Artifact and startup notes
 
-Current builds accept only version-2 `.ninfer` containers. All five published downloads are version
+Current builds accept only version-2 `.ninfer` containers. All six published downloads are version
 2. Migration is needed only for Qwen3.6 artifacts downloaded before their version-2 publication:
 
 ```bash
@@ -386,7 +399,9 @@ All registered model IDs support:
   tools, local response state, token counting, and usage accounting.
 
 The 35B-A3B target additionally supports DFlash with draft windows from one to fifteen for Text and
-image/video Vision prompts.
+image/video Vision prompts. Qwen3.8-27B artifacts with the DFlash2 companion weights support
+`--spec dflash2 --draft-tokens 7` for the same Text/Vision Engine path, with draft counts 1..15
+and either full or optimized proposal heads.
 
 The product boundary remains intentionally small:
 
