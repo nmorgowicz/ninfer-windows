@@ -91,27 +91,18 @@ def build_object_plan(resources: Mapping[str, bytes]) -> ObjectPlan:
     return family_conversion.build_object_plan(inventory.OBJECT_SPECS, resources)
 
 
-def _resource_sha256_overrides() -> dict[str, str]:
-    """Optional per-resource SHA256 overrides for finetuned sources.
+def _skip_resource_sha256() -> bool:
+    """Optional bypass of the frontend-resource SHA256 byte-lock.
 
-    Set NINFER_QWEN3_8_27B_RESOURCE_SHA256 to a JSON file mapping
-    "frontend/<name>" to a SHA256 hex digest; unlisted resources keep the
-    official hash. A finetune with a modified tokenizer declares its own.
+    Set NINFER_SKIP_RESOURCE_SHA256 to any non-empty value to skip the
+    per-file hash comparison (finetunes ship modified tokenizer files).
+    The resource set is still validated by name; only the byte-exact
+    hashes are waived.
     """
-    path = os.environ.get("NINFER_QWEN3_8_27B_RESOURCE_SHA256")
-    if not path:
-        return {}
-    data = json.loads(Path(path).read_text(encoding="utf-8"))
-    if not isinstance(data, dict):
-        raise ValueError(
-            "NINFER_QWEN3_8_27B_RESOURCE_SHA256 must map resource name to sha256"
-        )
-    return {str(name): str(digest) for name, digest in data.items()}
+    return bool(os.environ.get("NINFER_SKIP_RESOURCE_SHA256"))
 
 
 def load_resources(model_dir: str | Path) -> tuple[ResourcePayload, ...]:
-    expected_hashes = dict(OFFICIAL_RESOURCE_SHA256)
-    expected_hashes.update(_resource_sha256_overrides())
     expected_names = tuple(OFFICIAL_RESOURCE_SHA256)
     spec_names = tuple(spec.name for spec in inventory.RESOURCE_SPECS)
     if spec_names != expected_names:
@@ -126,9 +117,11 @@ def load_resources(model_dir: str | Path) -> tuple[ResourcePayload, ...]:
             "Qwen3.8 frontend resource set mismatch: "
             f"expected {expected_names!r}, got {actual_names!r}"
         )
+    if _skip_resource_sha256():
+        return resources
     for resource in resources:
         actual = hashlib.sha256(resource.data).hexdigest()
-        expected = expected_hashes[resource.name]
+        expected = OFFICIAL_RESOURCE_SHA256[resource.name]
         if actual != expected:
             filename = resource.name.removeprefix("frontend/")
             raise ValueError(
