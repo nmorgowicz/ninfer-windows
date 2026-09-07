@@ -8,6 +8,7 @@ geometry.
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 from typing import Mapping, Sequence
 
@@ -37,6 +38,17 @@ OFFICIAL_RESOURCE_SHA256 = {
 }
 
 
+def _skip_resource_sha256() -> bool:
+    """Optional bypass of the frontend-resource SHA256 byte-lock.
+
+    Set NINFER_SKIP_RESOURCE_SHA256 to any non-empty value to skip the
+    per-file hash comparison (finetunes ship modified tokenizer files).
+    The resource set is still validated by name; only the byte-exact
+    hashes are waived.
+    """
+    return bool(os.environ.get("NINFER_SKIP_RESOURCE_SHA256"))
+
+
 def validate_official_resource_hashes(
     actual_hashes: Mapping[str, str],
 ) -> None:
@@ -49,6 +61,8 @@ def validate_official_resource_hashes(
             "Qwen3.6 frontend resource set mismatch: "
             f"expected {expected_names!r}, got {actual_names!r}"
         )
+    if _skip_resource_sha256():
+        return
     for name, expected in OFFICIAL_RESOURCE_SHA256.items():
         actual = actual_hashes[name]
         if actual != expected:
