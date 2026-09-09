@@ -279,7 +279,7 @@ int test_typed_items_and_cache_markers() {
                           resolved.generation.messages[1].tool_call_id == "call_1",
                       "typed Items survive call-graph normalization");
     const ninfer::PromptInput translated = to_prompt_input(
-        resolved.generation, ResolvedPromptSemantics{}, [](const ContentPart& part) {
+        resolved.generation, ResolvedPromptSemantics{}, ServeOptions{}, [](const ContentPart& part) {
             ninfer::OwnedMedia media;
             media.kind  = part.kind == ContentKind::Image ? ninfer::MediaKind::Image
                                                           : ninfer::MediaKind::Video;
@@ -541,8 +541,8 @@ int test_tools_and_effective_subset() {
         R"({"model":"m","input":"probe","tools":[{"type":"function","name":"probe","parameters":{"type":"object","properties":{"zeta":{"type":"string"},"alpha":{"type":"integer"}}}}]})");
     const OpenAIResponsesCreateRequest ordered_request =
         parse_openai_responses_create_request(ordered, limits());
-    const ninfer::PromptInput ordered_prompt =
-        to_prompt_input(ordered_request.prompt.generation, ResolvedPromptSemantics{}, {});
+    const ninfer::PromptInput ordered_prompt = to_prompt_input(
+        ordered_request.prompt.generation, ResolvedPromptSemantics{}, ServeOptions{}, {});
     failures += check(
         ordered_prompt.options.tool_jsons.size() == 1 &&
             ordered_prompt.options.tool_jsons.front() ==

@@ -77,7 +77,7 @@ ResolvedPromptSemantics semantics(const GenerationRequest& request, bool default
 }
 
 ninfer::PromptInput prompt(const GenerationRequest& request) {
-    return to_prompt_input(request, semantics(request), [](const ContentPart& part) {
+    return to_prompt_input(request, semantics(request), ServeOptions{}, [](const ContentPart& part) {
         ninfer::OwnedMedia media;
         media.kind =
             part.kind == ContentKind::Image ? ninfer::MediaKind::Image : ninfer::MediaKind::Video;

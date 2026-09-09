@@ -83,6 +83,8 @@ std::string serve_usage_text(const char* argv0) {
            "[--vision] [--no-cuda-graph] [--no-prefix-reuse] "
            "[--lm-head-draft] [--no-thinking] [--preserve-thinking] "
            "[--tolerant-tool-calls] [--cors] "
+           "[--chat-template PATH] [--chat-template-semantics MODE] [--weights-profile PROFILE] "
+           "[--max-tool-arg-chars N] [--max-tool-response-chars N] "
            "[--webui | --webui-dir DIR] "
            "[--temperature F] [--top-p F] [--top-k N] [--min-p F] [--presence-penalty F] "
            "[--frequency-penalty F] [--seed N] [--greedy]\n"
@@ -114,6 +116,13 @@ std::string serve_usage_text(const char* argv0) {
            "       --preserve-thinking retains closed-turn assistant reasoning in later prompts\n"
            "       --tolerant-tool-calls recovers complete Qwen calls with malformed "
            "wrapper/suffix output\n"
+           "       --chat-template PATH loads a jinja template from disk, overriding the artifact\n"
+           "       --chat-template-semantics MODE: auto (default) | froggeric | thinking-toggle | "
+           "reasoning-effort | generic\n"
+           "       --weights-profile PROFILE: auto (default) | qwen36-nvfp4 | qwen38-nvfp4 | "
+           "qwen36-groupwise-int | qwen38-groupwise-int\n"
+           "       --max-tool-arg-chars/--max-tool-response-chars truncate long tool call "
+           "arguments/tool responses (froggeric semantics only; 0 = no limit, the default)\n"
            "       sampler defaults come from the loaded model and resolved thinking mode; "
            "server flags and request fields override individual values.\n"
            "       --webui auto-downloads the prebuilt llama.cpp webui (ggml-org/llama-ui "
@@ -300,6 +309,18 @@ ServeOptions parse_serve_options(int argc, char** argv) {
             options.preserve_thinking = true;
         } else if (arg == "--tolerant-tool-calls") {
             options.tolerant_tool_calls = true;
+        } else if (arg == "--chat-template") {
+            options.chat_template_path = require_value("--chat-template");
+        } else if (arg == "--chat-template-semantics") {
+            options.chat_template_semantics = require_value("--chat-template-semantics");
+        } else if (arg == "--weights-profile") {
+            options.weights_profile_override = require_value("--weights-profile");
+        } else if (arg == "--max-tool-arg-chars") {
+            options.max_tool_arg_chars = static_cast<std::size_t>(
+                parse_u64(require_value("--max-tool-arg-chars"), "max-tool-arg-chars"));
+        } else if (arg == "--max-tool-response-chars") {
+            options.max_tool_response_chars = static_cast<std::size_t>(
+                parse_u64(require_value("--max-tool-response-chars"), "max-tool-response-chars"));
         } else if (arg == "--cors") {
             options.enable_cors = true;
         } else if (arg == "--webui") {

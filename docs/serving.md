@@ -219,10 +219,12 @@ post-close model token, preparation is rejected with HTTP 400 code
 not promise that the model will emit nonempty content or a tool call after the marker.
 
 For Chat Completions, `reasoning_effort: "none"` disables thinking. `low`, `medium`, and `xhigh`
-select the corresponding template effort when available. The other OpenAI protocol values
-`minimal`, `high`, and `max` are parsed but rejected when the loaded template does not expose them.
-`enable_thinking` controls the same new-turn thinking switch; a contradictory combination with
-`reasoning_effort` returns `conflicting_template_option`.
+select the corresponding template effort when available. The remaining OpenAI protocol values are
+accepted as synonyms and aliased to the nearest supported tier: `minimal` maps to `low`; `high` and
+`max` map to `xhigh`. `enable_thinking` controls the same new-turn thinking switch; a contradictory
+combination with `reasoning_effort` returns `conflicting_template_option`. Any resolved tier the
+loaded template does not expose (for example `low` against a template with only `medium`/`xhigh`)
+still returns HTTP 400 `reasoning_effort_not_supported`.
 
 `preserve_thinking` controls whether reasoning from closed assistant turns remains in later
 prompts. It defaults to the server setting, which is off unless `--preserve-thinking` is used. If
@@ -417,7 +419,7 @@ wire response contains typed `output` Items.
 | `top_p` | finite number in `[0,1]` |
 | `metadata` | at most 16 string pairs; keys at most 64 characters and values at most 512 |
 | `client_metadata` | Codex client extension; an object or `null`, accepted as opaque tracing metadata with no generation effect |
-| `reasoning.effort` | `none` disables thinking; `low`, `medium`, or `xhigh` selects an effort exposed by the loaded chat template; `minimal`, `high`, and `max` return `reasoning_effort_not_supported` for the registered templates |
+| `reasoning.effort` | `none` disables thinking; `low`, `medium`, or `xhigh` selects an effort exposed by the loaded chat template; `minimal` aliases to `low` and `high`/`max` alias to `xhigh`, then apply the same template-support check |
 | `chat_template_kwargs.preserve_thinking` | optional boolean controlling whether closed-turn reasoning remains in reconstructed prompts |
 | `preserve_thinking` | top-level alias for the same option; conflicting values are rejected |
 | `text.format` | omitted or `{"type":"text"}` only |
@@ -798,6 +800,11 @@ The table lists executable defaults. The startup example selects a long-context 
 | `--no-thinking` | disable thinking by default | thinking on |
 | `--preserve-thinking` | preserve closed-turn assistant reasoning by default | off |
 | `--tolerant-tool-calls` | recover complete Qwen calls with malformed wrapper/suffix output | off |
+| `--chat-template PATH` | render prompts from a jinja file on disk instead of the artifact's embedded template | artifact template |
+| `--chat-template-semantics auto\|froggeric\|thinking-toggle\|reasoning-effort\|generic` | force the C++ renderer selected for `--chat-template`, bypassing SHA256 digest dispatch; `auto` defers to digest dispatch, `generic` accepts an unrecognized template under thinking-toggle semantics | `auto` |
+| `--weights-profile PROFILE` | override the artifact's default weights profile | artifact default |
+| `--max-tool-arg-chars N` | truncate each rendered tool-call argument value beyond `N` characters (froggeric semantics only); `0` disables truncation | `0` |
+| `--max-tool-response-chars N` | truncate each rendered tool-response body beyond `N` characters (froggeric semantics only); `0` disables truncation | `0` |
 | `--cors` | permissive browser CORS headers | off |
 | `--temperature F` | process-level temperature override | unset |
 | `--top-p F` | process-level top-p override | unset |

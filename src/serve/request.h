@@ -147,6 +147,8 @@ parse_requested_reasoning_effort(std::string_view value) noexcept {
     if (value == "high") { return RequestedReasoningEffort::High; }
     if (value == "xhigh") { return RequestedReasoningEffort::XHigh; }
     if (value == "max") { return RequestedReasoningEffort::Max; }
+    if (value == "ultracode") { return RequestedReasoningEffort::Max; }
+    if (value == "extreme") { return RequestedReasoningEffort::Max; }
     return std::nullopt;
 }
 

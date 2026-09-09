@@ -65,6 +65,12 @@ struct ServeOptions {
     SamplingOverrides sampling_overrides;
     bool greedy                 = false; // --greedy: force temperature 0 (exact argmax)
     product::LogLevel log_level = product::LogLevel::Info;
+    std::filesystem::path chat_template_path; // --chat-template PATH
+    std::string chat_template_semantics;      // --chat-template-semantics MODE
+    std::string weights_profile_override;     // --weights-profile PROFILE
+    // froggeric-v22.5 semantics only: 0 disables truncation (the template default).
+    std::size_t max_tool_arg_chars      = 0; // --max-tool-arg-chars N
+    std::size_t max_tool_response_chars = 0; // --max-tool-response-chars N
 
     // Exact process argv for the server-start record. Secret-bearing option values are redacted
     // while parsing; this is provenance only and never affects execution.

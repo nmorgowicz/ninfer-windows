@@ -111,6 +111,9 @@ struct ChatRenderOptions {
     bool add_vision_id = false;
     std::vector<std::string> tool_jsons;
     std::vector<PromptCacheMarker> cache_markers;
+    // froggeric-v22.5 semantics only: 0 disables truncation, matching the template's default.
+    std::size_t max_tool_arg_chars      = 0;
+    std::size_t max_tool_response_chars = 0;
 };
 
 struct RewriteCheckpointByteSpec {
@@ -136,11 +139,18 @@ struct RenderedChat {
 enum class ChatTemplateSemantics : std::uint8_t {
     ThinkingToggle,
     ReasoningEffort,
+    FroggericV22_5,
 };
 
 class CompiledChatTemplate {
 public:
     [[nodiscard]] static CompiledChatTemplate resolve(std::string_view source);
+    // Bypasses the digest dispatch in resolve() to force a specific renderer, for
+    // --chat-template-semantics overrides paired with a --chat-template file. `semantics_mode`
+    // is one of "auto", "froggeric", "thinking-toggle", "reasoning-effort", "generic"; "auto"
+    // defers to the normal digest dispatch over `source`.
+    [[nodiscard]] static CompiledChatTemplate resolve_with_semantics(std::string_view source,
+                                                                     std::string_view semantics_mode);
 
     [[nodiscard]] PromptCapabilities capabilities() const noexcept;
     [[nodiscard]] RenderedChat render(const std::vector<ChatMessage>& messages,

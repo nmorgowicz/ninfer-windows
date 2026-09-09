@@ -67,9 +67,12 @@ KvCapacityPolicy parse_kv_capacity(const char* text) {
 }
 
 ReasoningEffort parse_reasoning_effort(std::string_view text) {
-    if (text == "low") { return ReasoningEffort::Low; }
+    if (text == "minimal" || text == "low") { return ReasoningEffort::Low; }
     if (text == "medium") { return ReasoningEffort::Medium; }
-    if (text == "xhigh") { return ReasoningEffort::XHigh; }
+    if (text == "high" || text == "xhigh" || text == "max" || text == "ultracode" ||
+        text == "extreme") {
+        return ReasoningEffort::XHigh;
+    }
     throw std::invalid_argument("invalid reasoning-effort: " + std::string(text));
 }
 
